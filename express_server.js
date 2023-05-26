@@ -7,6 +7,8 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+app.use(express.urlencoded({ extended: true }));
+
 app.set('view engine', 'ejs');
 
 app.get("/", (req, res) => {
@@ -35,6 +37,21 @@ app.get('/urls/:id', (req, res) => {
   console.log(req.params.id);
   res.render('urls_show', templateVars);
 });
+
+app.post('/urls', (req, res) => {
+  console.log(req.body);
+  res.send('Ok');
+});
+
+function generateRandomString() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let randomString = '';
+  for (let i = 0; i < 6; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    randomString += characters.charAt(randomIndex);
+  }
+  return randomString;
+}
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
