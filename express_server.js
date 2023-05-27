@@ -53,7 +53,10 @@ app.get("/urls", (req, res) => {
 
 // Route: Form to create a new URL
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  const templateVars = {
+    username: req.cookies['username'],
+  };
+  res.render('urls_new', templateVars);
 });
 
 // Route: Show details of a specific URL
@@ -101,6 +104,12 @@ app.post('/urls/:id', (req, res) => {
 app.post('/login', (req, res) => {
   const username = req.body.username;
   res.cookie('username', username);
+  res.redirect('/urls');
+});
+
+// Route: Logout
+app.post('/logout', (req, res) => {
+  res.clearCookie('username');
   res.redirect('/urls');
 });
 
