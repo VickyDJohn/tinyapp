@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 
 app.use(cookieParser());
 
+const users = {};
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -90,6 +92,15 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
+// Route: Registration page
+app.get('/register', (req, res) => {
+  const templateVars = {
+    username: req.cookies['username'],
+    urls: urlDatabase,
+  };
+  res.render('register', templateVars);
+});
+
 // Route: Delete a URL
 app.post('/urls/:id/delete', (req, res) => {
   const id = req.params.id;
@@ -116,6 +127,23 @@ app.post('/login', (req, res) => {
 app.post('/logout', (req, res) => {
   res.clearCookie('username');
   res.redirect('/urls');
+});
+
+// POST: User Registration
+app.post('/register', (req, res) => {
+  const id = generateRandomString();
+  const { email, password } = req.body;
+
+  const newUser = {
+    id,
+    email,
+    password
+  };
+
+  users[id] = newUser;
+  res.cookie('user_id', id);
+  res.redirect('/urls');
+  console.log(users);
 });
 
 // Start the server
