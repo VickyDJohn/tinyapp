@@ -107,10 +107,25 @@ app.get("/register", (req, res) => {
   res.render('register');
 });
 
+//Route: Login page
+app.get('/login', (req, res) => {
+  const templateVars = {
+    user_id: req.cookies['user_id'],
+    users
+  };
+  res.render('login', templateVars);
+});
+
 //POST: Save new user registration details
 app.post('/register', (req, res) => {
   const id = generateRandomString();
   const { email, password } = req.body;
+
+  const user = Object.values(users).find(user => user.email === email);
+  if (user) {
+    res.status(400).send('Email already exists.');
+    return;
+  }
 
   const newUser = {
     id,
@@ -141,6 +156,7 @@ app.post('/urls/:id', (req, res) => {
 
 //POST: login and set user_id cookie
 app.post('/login', (req, res) => {
+  const { user_id } = req.body;
   const user = Object.values(users).find(user => user.email === user_id);
   if (user) {
     res.cookie('user_id', user_id);
