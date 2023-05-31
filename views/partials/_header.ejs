@@ -19,11 +19,9 @@
         <button class="btn btn-light" type="submit">Log Out</button>
       </form>
       <% } else { %>
-        <form class="form-inline ml-auto" action="/login" method="POST">
-          <input class="form-control mr-sm-2" type="text" placeholder="Username" name="user_id">
-          <button class="btn btn-light" type="submit">Log In</button>
-        </form>
-        <% } %>
-  </nav>
+        <a class="nav-item nav-link ml-auto text-white" href="/register">Register</a>
+        <a class="nav-item nav-link text-white" href="/login">Log In</a>
+      <% } %>
+    </nav>
 
 </header>
