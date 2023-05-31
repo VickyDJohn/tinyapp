@@ -158,9 +158,7 @@ app.post('/login', (req, res) => {
   const { email, password } = req.body;
   const user = Object.values(users).find(user => user.email === email);
 
-  if (!user) {
-    res.status(403).send('Invalid email or password');
-  } else if (user.password !== password) {
+  if (!user || user.password !== password) {
     res.status(403).send('Invalid email or password');
   } else {
     res.cookie('user_id', user.id);
