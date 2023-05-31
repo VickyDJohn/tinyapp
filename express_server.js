@@ -56,7 +56,6 @@ app.get("/urls", (req, res) => {
     users
   };
   res.render("urls_index", templateVars);
-  console.log(users);
 });
 
 // Route: Form to create a new URL
@@ -102,9 +101,10 @@ app.get("/u/:id", (req, res) => {
 app.get("/register", (req, res) => {
   const templateVars = {
     user_id: req.cookies['user_id'],
-    urls: urlDatabase
+    urls: urlDatabase,
+    users
   };
-  res.render('register');
+  res.render('register', templateVars);
 });
 
 //Route: Login page
@@ -136,7 +136,6 @@ app.post('/register', (req, res) => {
   users[id] = newUser;
   res.cookie('user_id', id);
   res.redirect('/urls');
-  console.log(users);
 });
 
 // POST: Delete a URL
@@ -156,21 +155,23 @@ app.post('/urls/:id', (req, res) => {
 
 //POST: login and set user_id cookie
 app.post('/login', (req, res) => {
-  const { user_id } = req.body;
-  const user = Object.values(users).find(user => user.email === user_id);
-  if (user) {
-    res.cookie('user_id', user_id);
-    res.redirect('/urls');
+  const { email, password } = req.body;
+  const user = Object.values(users).find(user => user.email === email);
+
+  if (!user) {
+    res.status(403).send('Invalid email or password');
+  } else if (user.password !== password) {
+    res.status(403).send('Invalid email or password');
   } else {
-    res.status(401).send('User not found. Please <a href="/register">register</a>');
+    res.cookie('user_id', user.id);
+    res.redirect('/urls');
   }
 });
 
 // POST: Logout
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
-  res.redirect('/urls');
-  console.log(users);
+  res.redirect('/login');
 });
 
 // Start the server
