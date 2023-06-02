@@ -11,6 +11,9 @@ const users = {
 
 };
 
+//helper variable
+const user = Object.values(users).find(user => user.email === email);
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -60,30 +63,39 @@ app.get("/urls", (req, res) => {
 
 // Route: Form to create a new URL
 app.get('/urls/new', (req, res) => {
-  const templateVars = {
-    user_id: req.cookies['user_id'],
-    users
-  };
-  res.render('urls_new', templateVars);
+    const templateVars = {
+      user_id: req.cookies['user_id'],
+      users
+    };
+    res.render('urls_new', templateVars);
 });
 
 // Route: Show details of a specific URL
 app.get('/urls/:id', (req, res) => {
-  const templateVars = {
-    id: req.params.id, longURL: urlDatabase[req.params.id],
-    user_id: req.cookies['user_id'],
-    users
-  };
-  res.render('urls_show', templateVars);
+  if (!req.params.id) {
+    res.send("This shortened URL does not exist.");
+    return;
+  } else {
+    const templateVars = {
+      id: req.params.id, longURL: urlDatabase[req.params.id],
+      user_id: req.cookies['user_id'],
+      users
+    };
+    res.render('urls_show', templateVars);
+  }
 });
 
 // POST: Create a new URL
 app.post('/urls', (req, res) => {
-  const id = generateRandomString();
-  const longURL = req.body.longURL;
-  urlDatabase[id] = longURL;
-  const newURL = `${req.protocol}://${req.get('host')}/urls/${id}`;
-  res.send(`New URL: ${newURL}`);
+  if (!req.cookies.user_id) {
+    res.send("Please login to shorten URLs");
+  } else {
+    const id = generateRandomString();
+    const longURL = req.body.longURL;
+    urlDatabase[id] = longURL;
+    const newURL = `${req.protocol}://${req.get('host')}/urls/${id}`;
+    res.send(`New URL: ${newURL}`);
+  }
 });
 
 // Route: Redirect to the long URL associated with the short URL
@@ -93,27 +105,37 @@ app.get("/u/:id", (req, res) => {
   if (longURL) {
     res.redirect(longURL);
   } else {
-    res.status(404).send("URL not found");
+    res.status(404).send("The requested URL does not exist");
   }
 });
 
 //Route: Register page
 app.get("/register", (req, res) => {
-  const templateVars = {
-    user_id: req.cookies['user_id'],
-    urls: urlDatabase,
-    users
-  };
-  res.render('register', templateVars);
+  if (req.cookies.user_id) {
+    res.redirect('/urls');
+  } else {
+    const templateVars = {
+      user_id: req.cookies['user_id'],
+      urls: urlDatabase,
+      users
+    };
+    res.render('register', templateVars);
+  }
 });
 
 //Route: Login page
 app.get('/login', (req, res) => {
-  const templateVars = {
-    user_id: req.cookies['user_id'],
-    users
-  };
-  res.render('login', templateVars);
+  console.log(users);
+  if (req.cookies.user_id) {
+    res.redirect('/urls');
+  } else {
+    const templateVars = {
+      user_id: req.cookies['user_id'],
+      users
+    };
+    res.render('login', templateVars);
+    console.log(users);
+  }
 });
 
 //POST: Save new user registration details
@@ -121,7 +143,6 @@ app.post('/register', (req, res) => {
   const id = generateRandomString();
   const { email, password } = req.body;
 
-  const user = Object.values(users).find(user => user.email === email);
   if (user) {
     res.status(400).send('Email already exists.');
     return;
@@ -156,7 +177,6 @@ app.post('/urls/:id', (req, res) => {
 //POST: login and set user_id cookie
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
-  const user = Object.values(users).find(user => user.email === email);
 
   if (!user || user.password !== password) {
     res.status(403).send('Invalid email or password');
