@@ -4,6 +4,7 @@ const app = express();
 const PORT = 8080;
 const cookieSession = require('cookie-session');
 const morgan = require('morgan');
+const { getUserByEmail } = require('./helpers');
 
 // Set up cookie session
 app.use(cookieSession({
@@ -16,6 +17,7 @@ app.use(morgan('dev'));
 
 const users = {};
 const urlDatabase = {};
+
 
 // Function to generate a random string of length 6
 function generateRandomString() {
@@ -179,17 +181,17 @@ app.get('/login', (req, res) => {
 
 //POST: Save new user registration details
 app.post('/register', (req, res) => {
-  const id = generateRandomString();
   const { email, password } = req.body;
 
-  const user = Object.values(users).find(user => user.email === email);
-
+  const user = getUserByEmail(email, users);
   if (user) {
     res.status(400).send('Email already exists.');
     return;
   }
 
-  const hashedPassword = bcrypt.hashSync(password, 10);
+  const id = generateRandomString();
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
 
   const newUser = {
     id,
@@ -200,7 +202,6 @@ app.post('/register', (req, res) => {
   users[id] = newUser;
   req.session.user_id = id;
   res.redirect('/urls');
-  console.log(users);
 });
 
 // POST: Delete a URL
@@ -248,7 +249,7 @@ app.post('/urls/:id', (req, res) => {
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  const user = Object.values(users).find(user => user.email === email);
+  const user = getUserByEmail(email, users);
 
   if (!user || !bcrypt.compareSync(password, user.password)) {
     res.status(403).send('Invalid email or password');
