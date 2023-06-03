@@ -7,17 +7,8 @@ const morgan = require('morgan');
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-const users = {
-
-};
-
-//helper variable
-const user = Object.values(users).find(user => user.email === email);
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
+const users = {};
+const urlDatabase = {};
 
 // Function to generate a random string of length 6
 function generateRandomString() {
@@ -28,6 +19,17 @@ function generateRandomString() {
     randomString += characters.charAt(randomIndex);
   }
   return randomString;
+}
+
+//function to filter URLs based on user
+function urlsForUser(id) {
+  const userURLs = {};
+  for (const urlID in urlDatabase) {
+    if (urlDatabase[urlID].userID === id) {
+      userURLs[urlID] = urlDatabase[urlID];
+    }
+  }
+  return userURLs;
 }
 
 // Middleware to parse URL-encoded bodies
@@ -53,36 +55,65 @@ app.get('/hello', (req, res) => {
 
 // Route: Display all URLs
 app.get("/urls", (req, res) => {
-  const templateVars = {
-    user_id: req.cookies['user_id'],
-    urls: urlDatabase,
-    users
+  const userId = req.cookies.user_id;
+  if (!userId) {
+    const errorMessage = "Please log in or register to view URLs.";
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Error</title>
+      </head>
+      <body>
+        <h1>Error</h1>
+        <p>${errorMessage}</p>
+      </body>
+      </html>
+    `;
+    res.send(html);
+  } else {
+    const userUrls = urlsForUser(userId);
+    const templateVars = {
+      user_id: userId,
+      urls: userUrls,
+      users
+    };
+    res.render("urls_index", templateVars);
   };
-  res.render("urls_index", templateVars);
 });
 
 // Route: Form to create a new URL
 app.get('/urls/new', (req, res) => {
-    const templateVars = {
-      user_id: req.cookies['user_id'],
-      users
-    };
-    res.render('urls_new', templateVars);
+  const templateVars = {
+    user_id: req.cookies['user_id'],
+    users
+  };
+  res.render('urls_new', templateVars);
 });
 
 // Route: Show details of a specific URL
 app.get('/urls/:id', (req, res) => {
-  if (!req.params.id) {
-    res.send("This shortened URL does not exist.");
+  const userId = req.cookies.user_id;
+  const urlId = req.params.id;
+  const url = urlDatabase[urlId];
+
+  if (!userId) {
+    res.send("Please login or register first.");
     return;
-  } else {
-    const templateVars = {
-      id: req.params.id, longURL: urlDatabase[req.params.id],
-      user_id: req.cookies['user_id'],
-      users
-    };
-    res.render('urls_show', templateVars);
   }
+
+  if (!url || url.userID !== userId) {
+    res.send("You do not have access to this URL.");
+    return;
+  }
+
+  const templateVars = {
+    id: urlId,
+    longURL: url.longURL,
+    user_id: userId,
+    users
+  };
+  res.render('urls_show', templateVars);
 });
 
 // POST: Create a new URL
@@ -92,16 +123,20 @@ app.post('/urls', (req, res) => {
   } else {
     const id = generateRandomString();
     const longURL = req.body.longURL;
-    urlDatabase[id] = longURL;
+    const userID = req.cookies.user_id;
+    urlDatabase[id] = {
+      longURL,
+      userID
+    };
     const newURL = `${req.protocol}://${req.get('host')}/urls/${id}`;
-    res.send(`New URL: ${newURL}`);
+    res.redirect('/urls');
   }
 });
 
 // Route: Redirect to the long URL associated with the short URL
 app.get("/u/:id", (req, res) => {
   const shortURL = req.params.id;
-  const longURL = urlDatabase[shortURL];
+  const longURL = urlDatabase[shortURL] ? urlDatabase[shortURL].longURL : null;
   if (longURL) {
     res.redirect(longURL);
   } else {
@@ -116,7 +151,6 @@ app.get("/register", (req, res) => {
   } else {
     const templateVars = {
       user_id: req.cookies['user_id'],
-      urls: urlDatabase,
       users
     };
     res.render('register', templateVars);
@@ -125,7 +159,6 @@ app.get("/register", (req, res) => {
 
 //Route: Login page
 app.get('/login', (req, res) => {
-  console.log(users);
   if (req.cookies.user_id) {
     res.redirect('/urls');
   } else {
@@ -134,7 +167,6 @@ app.get('/login', (req, res) => {
       users
     };
     res.render('login', templateVars);
-    console.log(users);
   }
 });
 
@@ -142,6 +174,8 @@ app.get('/login', (req, res) => {
 app.post('/register', (req, res) => {
   const id = generateRandomString();
   const { email, password } = req.body;
+
+  const user = Object.values(users).find(user => user.email === email);
 
   if (user) {
     res.status(400).send('Email already exists.');
@@ -161,22 +195,50 @@ app.post('/register', (req, res) => {
 
 // POST: Delete a URL
 app.post('/urls/:id/delete', (req, res) => {
-  const id = req.params.id;
-  delete urlDatabase[id];
+  const userId = req.cookies.user_id;
+  const urlId = req.params.id;
+  const url = urlDatabase[urlId];
+
+  if (!userId) {
+    res.send("Please login or register first.");
+    return;
+  }
+
+  if (!url || url.userID !== userId) {
+    res.send("You do not have permission to delete this URL.");
+    return;
+  }
+
+  delete urlDatabase[urlId];
   res.redirect('/urls');
 });
 
 // POST: Update a URL
 app.post('/urls/:id', (req, res) => {
-  const id = req.params.id;
+  const userId = req.cookies.user_id;
+  const urlId = req.params.id;
+  const url = urlDatabase[urlId];
+
+  if (!userId) {
+    res.send("Please login or register first.");
+    return;
+  }
+
+  if (!url || url.userID !== userId) {
+    res.send("You do not have permission to edit this URL.");
+    return;
+  }
+
   const newLongURL = req.body.longURL;
-  urlDatabase[id] = newLongURL;
+  urlDatabase[urlId].longURL = newLongURL;
   res.redirect('/urls');
 });
 
 //POST: login and set user_id cookie
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
+
+  const user = Object.values(users).find(user => user.email === email);
 
   if (!user || user.password !== password) {
     res.status(403).send('Invalid email or password');
