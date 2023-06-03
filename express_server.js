@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 const cookieParser = require('cookie-parser');
@@ -182,15 +183,18 @@ app.post('/register', (req, res) => {
     return;
   }
 
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   const newUser = {
     id,
     email,
-    password
+    password: hashedPassword
   };
 
   users[id] = newUser;
   res.cookie('user_id', id);
   res.redirect('/urls');
+  console.log(users);
 });
 
 // POST: Delete a URL
@@ -240,7 +244,7 @@ app.post('/login', (req, res) => {
 
   const user = Object.values(users).find(user => user.email === email);
 
-  if (!user || user.password !== password) {
+  if (!user || !bcrypt.compareSync(password, user.password)) {
     res.status(403).send('Invalid email or password');
   } else {
     res.cookie('user_id', user.id);
