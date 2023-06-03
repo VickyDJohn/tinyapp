@@ -1,10 +1,11 @@
 const express = require('express');
 const bcrypt = require("bcryptjs");
-const app = express();
-const PORT = 8080;
 const cookieSession = require('cookie-session');
 const morgan = require('morgan');
-const { getUserByEmail } = require('./helpers');
+const { getUserByEmail, generateRandomString, urlsForUser } = require('./helpers');
+
+const app = express();
+const PORT = 8080;
 
 // Set up cookie session
 app.use(cookieSession({
@@ -14,38 +15,12 @@ app.use(cookieSession({
 }));
 
 app.use(morgan('dev'));
+app.use(express.urlencoded({ extended: true }));
+app.set('view engine', 'ejs');
 
 const users = {};
 const urlDatabase = {};
 
-
-// Function to generate a random string of length 6
-function generateRandomString() {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let randomString = '';
-  for (let i = 0; i < 6; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    randomString += characters.charAt(randomIndex);
-  }
-  return randomString;
-}
-
-//function to filter URLs based on user
-function urlsForUser(id) {
-  const userURLs = {};
-  for (const urlID in urlDatabase) {
-    if (urlDatabase[urlID].userID === id) {
-      userURLs[urlID] = urlDatabase[urlID];
-    }
-  }
-  return userURLs;
-}
-
-// Middleware to parse URL-encoded bodies
-app.use(express.urlencoded({ extended: true }));
-
-// Set the view engine to EJS
-app.set('view engine', 'ejs');
 
 // Route: Home page
 app.get("/", (req, res) => {
