@@ -15,7 +15,7 @@ function generateRandomString() {
 }
 
 //function to filter URLs based on user
-function urlsForUser(id) {
+function urlsForUser(id, urlDatabase) {
   const userURLs = {};
   for (const urlID in urlDatabase) {
     if (urlDatabase[urlID].userID === id) {

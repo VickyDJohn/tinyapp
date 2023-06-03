@@ -14,13 +14,13 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
+//Middleware setup
 app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
 const users = {};
 const urlDatabase = {};
-
 
 // Route: Home page
 app.get("/", (req, res) => {
@@ -56,7 +56,7 @@ app.get("/urls", (req, res) => {
     `;
     res.send(html);
   } else {
-    const userUrls = urlsForUser(userId);
+    const userUrls = urlsForUser(userId, urlDatabase);
     const templateVars = {
       user_id: userId,
       urls: userUrls,
